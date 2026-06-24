@@ -1,0 +1,41 @@
+-- HISTORICAL NOTE (not an executable fix - see below for why):
+--
+-- The original sync-genlayer-result cron job (migration 0019) was missing
+-- the Authorization header that Supabase's API gateway requires on every
+-- Edge Function call - this is enforced by the gateway itself, separate
+-- from the function's own internal x-supabase-internal check. Every single
+-- run of the cron job hit a 401 at the gateway before ever reaching the
+-- function, meaning no GenLayer consensus result was ever synced back to
+-- the database for the entire history of this project until this was
+-- found and fixed on 2026-06-22. The 5-second default net.http_post
+-- timeout was also too short: the function loops over every pending
+-- validation and calls the GenLayer RPC for each one, which can take
+-- longer than 5 seconds.
+--
+-- This was fixed directly against the live database via the Supabase SQL
+-- editor (not through this migration), because the fix requires the
+-- project's service_role key in the cron job's Authorization header, and
+-- that value must never be committed to source control. The job is
+-- currently named 'sync-genlayer-result-cron' and already has the correct
+-- headers and a 30-second timeout.
+--
+-- If this project is ever rebuilt from scratch, recreate the fix with:
+--
+--   select cron.unschedule('sync-genlayer-result');  -- the original job from migration 0019
+--
+--   select cron.schedule(
+--     'sync-genlayer-result-cron',
+--     '*/2 * * * *',
+--     $job$
+--     select net.http_post(
+--       url := 'https://<project-ref>.supabase.co/functions/v1/sync-genlayer-result',
+--       headers := jsonb_build_object(
+--         'Content-Type', 'application/json',
+--         'x-supabase-internal', '1',
+--         'Authorization', 'Bearer ' || '<your service_role key>'
+--       ),
+--       body := '{}'::jsonb,
+--       timeout_milliseconds := 30000
+--     );
+--     $job$
+--   );

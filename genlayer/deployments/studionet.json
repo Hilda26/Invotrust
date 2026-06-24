@@ -1,0 +1,14 @@
+{
+  "network": "studionet",
+  "contract": "InvoiceValidator",
+  "address": "0x273335a54bC4c7782e776D2abA6802F3B84D8B53",
+  "deployed_at": "2026-06-21",
+  "deployer_wallet": null,
+  "notes": "Redeployed to StudioNet on 2026-06-21 to fix UNDETERMINED consensus results that persisted even after widening eq_principle tolerance bands on the previous address. Root cause: the validation step used five sequential gl.eq_principle.prompt_comparative calls, each requiring the leader AND every validator to independently run their own LLM and agree with each other - and the validator committee runs different model providers (deepseek, qwen, gpt, claude), which routinely produced genuinely different scores. Fixed by replacing all five calls with a single gl.eq_principle.prompt_non_comparative call: only the leader generates an answer, and validators merely judge its plausibility against lenient criteria instead of independently reproducing it. This removes the actual source of disagreement rather than just loosening tolerance. Method signatures used by submit-to-genlayer and sync-genlayer-result (submit_invoice, get_validation_result, get_submission, get_vendor_history, get_audit_trail) are unchanged. Set GENLAYER_CONTRACT_ADDRESS=0x273335a54bC4c7782e776D2abA6802F3B84D8B53 in both Supabase Edge Function secrets and the Vercel project environment variables.",
+  "previous_addresses": [
+    "0x39Ce7552A13a1d127D13FcDcF2bc368597627D34",
+    "0x07609c641723b3Dde915E7a1Ef51271574Ac01Ca",
+    "0x0E15041a3DC87b8a175570bc43380BAE206ecA65",
+    "0x3c63C12daa2bccd1BAdE634654A09b6A58A4058f"
+  ]
+}
